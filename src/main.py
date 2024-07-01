@@ -72,11 +72,6 @@ def map_from_hh_object_to_vacancies(items):
 
 @app.get("/vacancies")
 async def vacancies(filters: Union[schemas.Filter, None] = None, db: Session = Depends(get_db)):
-    v = orm.get_vacancies(db)
-    v_id = []
-    for vv in v:
-        v_id.append(vv.id)
-
     if filters is not None:
         items = get_vacancies(filters)
     else:
@@ -85,8 +80,9 @@ async def vacancies(filters: Union[schemas.Filter, None] = None, db: Session = D
     vacancies_data = map_from_hh_object_to_vacancies(items)
 
     for vacancy in vacancies_data:
-        if vacancy.id not in v_id:
-            orm.create_vacancy(db=db, vacancy=vacancy)
-        else:
+        if orm.get_vacancy_by_id(db, vacancy.id):
             orm.update_vacancies(db, vacancy=vacancy)
+        else:
+            orm.create_vacancy(db=db, vacancy=vacancy)
+
     return vacancies_data
