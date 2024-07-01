@@ -10,11 +10,12 @@ class VacancyModel(BaseModel):
     salary_from: Optional[int] = None
     salary_to: Optional[int] = None
     salary_currency: Optional[str] = None
+    is_archived: bool = False
 
 
 class Filter(BaseModel):
     text: Optional[str] = None
     salary: Optional[int] = None
     currency: Optional[str] = None
-    only_with_salary: Optional[bool] = None
+    only_with_salary: bool = False
     page: int = 0

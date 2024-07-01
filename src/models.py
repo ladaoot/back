@@ -15,3 +15,4 @@ class Vacancy(Base):
     salary_from = Column(Integer, nullable=True)
     salary_to = Column(Integer, nullable=True)
     salary_currency = Column(String)
+    is_archived = Column(Boolean)
