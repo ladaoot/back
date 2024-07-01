@@ -14,6 +14,9 @@ from database import SessionLocal, engine
 
 app = FastAPI()
 
+roles = []
+categories = []
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -25,6 +28,21 @@ async def startup_event():
                 f'&client_secret={constants.CLIENT_SECRET}')
         r = response.json()
         constants.OAUTH_TOKEN = r['access_token']
+
+    url = 'https://api.hh.ru/professional_roles'
+
+    headers = {'OauthToken': constants.OAUTH_TOKEN}
+
+    response = requests.get(url, headers=headers)
+    cat = response.json()["categories"]
+
+    for c in cat:
+        item = {"name": c["name"], "id": c["id"]}
+
+        for r in c["roles"]:
+            roles.append({"name": r["name"], "id": r["id"], "category": c["id"]})
+
+        categories.append(item)
 
 
 @app.on_event("shutdown")
@@ -89,3 +107,18 @@ async def vacancies(filters: Union[schemas.Filter, None] = None, db: Session = D
     res = {"found": items["found"], "vacancies": jsonable_encoder(vacancies_data)}
 
     return JSONResponse(content=res)
+
+
+@app.get("/filters/categories")
+async def filters_categories():
+    return categories
+
+
+@app.get("/filters/categories/{cat_id}")
+async def get_roles_by_category(cat_id: str):
+    res = []
+    for role in roles:
+        if role["category"] == cat_id:
+            res.append(role)
+
+    return res
