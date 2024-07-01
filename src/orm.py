@@ -1,23 +1,28 @@
 from sqlalchemy.orm import Session
 
-from database import engine, Base
-import schemas, models
+import models
+import schemas
 
 
-async def create_table():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+def mapping_from_schemas_to_models(schemas_model: schemas.VacancyModel, db: Session):
+    model = get_vacancy_by_id(db, schemas_model.id)
+
+    if model is None:
+        model = models.Vacancy(id=schemas_model.id)
+
+    model.experience = schemas_model.experience
+    model.salary_currency = schemas_model.salary_currency
+    model.salary_to = schemas_model.salary_to
+    model.salary_from = schemas_model.salary_from
+    model.employer = schemas_model.employer
+    model.name = schemas_model.name
+    model.is_archived = schemas_model.is_archived
+
+    return model
 
 
 def create_vacancy(db: Session, vacancy: schemas.VacancyModel):
-    db_vacancy = models.Vacancy(id=vacancy.id)
-    db_vacancy.experience = vacancy.experience
-    db_vacancy.salary_currency = vacancy.salary_currency
-    db_vacancy.salary_to = vacancy.salary_to
-    db_vacancy.salary_from = vacancy.salary_from
-    db_vacancy.employer = vacancy.employer
-    db_vacancy.name = vacancy.name
+    db_vacancy = mapping_from_schemas_to_models(vacancy, db)
 
     db.add(db_vacancy)
     db.commit()
@@ -25,7 +30,7 @@ def create_vacancy(db: Session, vacancy: schemas.VacancyModel):
     return db_vacancy
 
 
-def get_vacancies(db: Session, skip: int = 0, limit: int = 100):
+def get_all_vacancies(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Vacancy).offset(skip).limit(limit).all()
 
 
@@ -34,11 +39,5 @@ def get_vacancy_by_id(db: Session, vacancy_id: int):
 
 
 def update_vacancies(db: Session, vacancy: schemas.VacancyModel):
-    v = get_vacancy_by_id(db, vacancy.id)
-    v.experience = vacancy.experience
-    v.salary_currency = vacancy.salary_currency
-    v.salary_to = vacancy.salary_to
-    v.salary_from = vacancy.salary_from
-    v.employer = vacancy.employer
-    v.name = vacancy.name
+    mapping_from_schemas_to_models(vacancy, db)
     db.commit()
