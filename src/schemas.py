@@ -19,3 +19,4 @@ class Filter(BaseModel):
     currency: Optional[str] = None
     only_with_salary: bool = False
     page: int = 0
+    professional_role: list[str] = []
