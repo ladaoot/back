@@ -1,12 +1,15 @@
 from typing import Union
 
 import requests
-
-from fastapi import FastAPI, Depends
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
+from fastapi.responses import JSONResponse
 
-import orm, schemas, models, constants
+import constants
+import models
+import orm
+import schemas
 from database import SessionLocal, engine
 
 app = FastAPI()
@@ -48,7 +51,7 @@ def get_vacancies(params=None):
     if response.status_code == 200:
         return response.json()
     else:
-        return {"error": "Unable to fetch vacancies"}
+        raise HTTPException(status_code=response.status_code, detail="Unable to fetch vacancies")
 
 
 def map_from_hh_object_to_vacancies(items):
@@ -66,16 +69,14 @@ def map_from_hh_object_to_vacancies(items):
             vacancy.salary_currency = salary["currency"]
         vacancy.name = item["name"]
         vacancy.id = int(item["id"])
+        vacancy.is_archived = item["archived"]
         vacancies_data.append(vacancy)
     return vacancies_data
 
 
 @app.get("/vacancies")
 async def vacancies(filters: Union[schemas.Filter, None] = None, db: Session = Depends(get_db)):
-    if filters is not None:
-        items = get_vacancies(filters)
-    else:
-        items = get_vacancies()
+    items = get_vacancies(filters)
 
     vacancies_data = map_from_hh_object_to_vacancies(items)
 
@@ -85,4 +86,6 @@ async def vacancies(filters: Union[schemas.Filter, None] = None, db: Session = D
         else:
             orm.create_vacancy(db=db, vacancy=vacancy)
 
-    return vacancies_data
+    res = {"found": items["found"], "vacancies": jsonable_encoder(vacancies_data)}
+
+    return JSONResponse(content=res)
